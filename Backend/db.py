@@ -5,6 +5,19 @@ mydb = mysql.connector.connect(
     password = "",
     database = "bookstore"
 )
+mydb_Create_Table_Query = """CREATE TABLE usertype (
+  id int(100) not null auto_increment,
+  type varchar(50) not null,
+CONSTRAINT type_pk PRIMARY KEY (id)
+)"""
+mydb_Create_Table_Query = """CREATE TABLE register
+( id int(100) not null AUTO_INCREMENT PRIMARY KEY,
+  fullname varchar(50) not null,
+  username varchar(50) not null,
+  password varchar(50) not null,
+  type int(100) not null,
+  FOREIGN KEY(type) REFERENCES usertype(id) 
+)"""
 # TABLE FOR STORING CATEGORY DETAILS OF BOOK
 mydb_Create_Table_Query = """CREATE TABLE category
 (categoryid int(100) not null auto_increment,
