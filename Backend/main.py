@@ -10,75 +10,33 @@ from flask import flash, request
 from app import app
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from flask_cors import cross_origin
-
-# USER REGISTRATION
-@app.route('/register', methods=['POST'])
-def register():
-    json = request.json
-    print(json)
-    fullname= json['fullname']
-    username = json['username']
-    email= json['email']
-    password = json['password']
-    category ='user'
-    if fullname and  username and email and password and category and request.method == 'POST':
-        query= "SELECT * FROM register WHERE username= '%s'" % (username)
-        data = execute_query(query)
-        print(data)
-        if data>0:
-            response = jsonify('User already Exsist!!')
-            response.status_code = 200
-            return response
-        else:   
-            sqlQuery = "INSERT INTO register(fullname,username,email,password,category) VALUES(%s,%s, %s, %s,%s)"
-            bindData = (fullname,username,email,password,category)
-            db_commit_connection(sqlQuery, bindData)
-            respone = jsonify('User added successfully!')
-            respone.status_code = 200
-            return respone
-    else:
-        return showMessage()
-
-#ADMIN AND USER LOGIN 
-@app.route('/login', methods=['POST'])
-def login():
-    json = request.json
-    if not json.get('username') or not json.get('password'):
-        return handle_credentials()
-    try:
-        username = json['username']
-        password = json['password']
-        if request.method == 'POST':
-            sqlQuery = "SELECT * FROM register WHERE username= '%s' and password='%s'" % (username, password)
-            cursor = execute_query(sqlQuery)
-            row = cursor.fetchone() 
-            category = row.get('category')       
-            if cursor.rowcount == 1:
-                access_token = create_access_token(identity=username) 
-                return jsonify(message='Login Successful', access_token=access_token ,category=category),200
-            else:
-                return jsonify('Bad email or Password... Access Denied!'), 401
-        else:
-            return showMessage()          
-    except Exception as e:
-        print(e)
-        return jsonify(message='Error Occured'), 500
-
-# INSERTING THE BOOK DETAILS
-@app.route('/insert', methods=['POST'])
-def add_book():
+# CREATING CONSTRUCTOR
+class Category:
+    def __init__(self,categoryid,category):
+        self.categoryid=categoryid
+        self.category=category
+# CREATING CONSTRUCTOR FOR BOOK
+class Book:
+    def __init__(self,bookname , author, category, price):
+        self.bookname=bookname
+        self.author=author
+        self.price=price
+        self.category=category        
+# CREATING CATEGORY DETAILS
+@app.route('/insertcategory', methods=['POST'])
+def addCategory(categoryid=None):
     try:
         json = request.json
-        bookname= json['bookname']
-        isbn = json['isbn'] 
-        author = json['author']
-        category = json['category']
-        price = json['price']
-        if bookname and isbn and author and category and price and request.method =='POST':
-            sqlQuery = "INSERT INTO book(bookname ,isbn, author,category,price) VALUES(%s, %s, %s, %s,%s)"
-            bindData = (bookname,isbn, author,category,price)
-            db_commit_connection(sqlQuery, bindData)
-            respone = jsonify('Book details added successfully!')
+        category=json['category']
+        categoryobj = Category(categoryid, category)
+        if category and request.method =='POST':
+            conn = mydb.connect()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            sqlQuery = "INSERT INTO category(category) VALUES(%s)"
+            bindData = categoryobj.category
+            cursor.execute(sqlQuery, bindData)
+            conn.commit()
+            respone = jsonify('Category details added successfully!')
             respone.status_code = 200
             return respone
         else:
@@ -86,46 +44,78 @@ def add_book():
     except Exception as e:
         print(e)
         return 'Exception'
-
-#VIEWING THE BOOK DETAILS 
-@app.route('/books', methods =['GET'])
+#INSERTING BOOK DETAILS
+@app.route('/insertbook', methods=['POST'])
+def addBook(isbn=None):
+    try:
+        json = request.json
+        bookname= json['bookname'] 
+        author = json['author']
+        category = json['category']
+        price = json['price']
+        print(price)
+        bookObj = Book(bookname, author, category, price)
+        if bookname and author and category and price and request.method =='POST':
+            print("gdgdgwe")
+            conn = mydb.connect()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            sqlQuery = "INSERT INTO book(bookname, author, category, price) VALUES(%s, %s, %s, %s)"
+            bindData = (bookObj.bookname, bookObj.author, bookObj.category, bookObj.price)
+            cursor.execute(sqlQuery, bindData)
+            conn.commit()
+            respone = jsonify('Book details added successfully!')
+            respone.status_code = 200
+            return respone
+        else:
+            return showMessage()
+    except Exception as e:
+        print(e)
+        return 'Exception' 
+# VIEWING ALL BOOKS
+@app.route('/book', methods =['GET'])
 def book():
     try:
-        sqlQuery="SELECT bookname ,isbn, author, category, price FROM book"
-        cursor = execute_query(sqlQuery)
+        conn = mydb.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute("SELECT bookname,author, category,price FROM book")
         empRows = cursor.fetchall()
         respone = jsonify(empRows)
         respone.status_code = 200
         return respone
     except Exception as e: 
-        print(e)   
-
-#VIEWING THE PARTICULAR BOOK DETAILS BY ISBN
-@app.route('/bookk/<isbn>', methods=['GET'])
-def book_details(isbn):
+        print(e)
+    finally:
+        cursor.close() 
+        conn.close() 
+# VIEWING PARTICULAR BOOK 
+@app.route('/book/<isbn>', methods=['GET'])
+def bookDetails(isbn):
     try:
-        sqlQuery=("SELECT bookname ,isbn, author, category, price FROM book WHERE isbn =%s", (isbn))
-        cursor = execute_query(sqlQuery)
+        conn = mydb.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute("SELECT bookname ,author, category,price FROM book WHERE isbn =%s", (isbn))
         empRow = cursor.fetchone()
         respone = jsonify(empRow)
         respone.status_code = 200
         return respone
     except Exception as e:
         print(e)
-
-# UPDATING THE BOOK DETAILS
-@app.route('/update/<isbn>', methods=['PUT'])
-def update_book(isbn):
+    finally:
+        cursor.close()
+        conn.close()
+#UPDATING THE BOOK DETAILS    
+@app.route('/book/<isbn>', methods=['PUT'])
+def updateBook(isbn):
     try:
         newjson = request.json
-        newbookname = newjson['bookname']
-        newisbn = newjson['isbn']
+        newbookname = newjson['book_name']
         newauthor= newjson['author']
         newcategory = newjson['category']
         newprice = newjson['price']
-        if  newbookname and newisbn and newauthor and newcategory and  newprice  and request.method == 'PUT':           
-            sqlQuery = ("UPDATE book SET bookname= %s, author= %s, category= %s, price= %s WHERE isbn=%s")
-            bindData = ( newbookname, newauthor, newcategory, newprice, newisbn )
+        book = Book(newbookname, newauthor, newcategory, newprice)
+        if isbn and newbookname and newauthor and newcategory and  newprice  and request.method  == 'PUT':           
+            sqlQuery = ("UPDATE book SET bookname= %s, author= %s, category= %s, price= %s WHERE isbn=%s", (isbn))
+            bindData = (book.bookname, book.author, book.category, book.price)
             conn = mydb.connect()
             cursor = conn.cursor()
             cursor.execute(sqlQuery,bindData)
@@ -138,41 +128,7 @@ def update_book(isbn):
             return showMessage()
     except Exception as e:
         print(e)
-
-# DELETING BOOK DETAILS 
-@app.route('/delete/<isbn>', methods=['DELETE'])
-def delete_book(isbn):
-    try:
-        sqlQuery = ("DELETE FROM book WHERE isbn =%s",(isbn))
-        cursor = execute_query(sqlQuery)
-        respone = jsonify('Book Details deleted successfully!')
-        respone.status_code = 200
-        return respone
-    except Exception as e:
-        return 'Exception'
-
-#FUNCTION FOR DATABASE CONNECTION    
-def execute_query(query):
-    conn = mydb.connect()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    cursor.execute(query)
-    conn.commit()
-    conn.close()
-    return cursor
-
-#FUNCTION FOR DATABASE CONNECTION 
-def db_commit_connection(query, data=None):
-    conn = pymysql.connect()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    if data:
-        cursor.execute(query, data)
-    else:
-        cursor.execute(query)
-    conn.commit()
-    cursor.close()
-    conn.close()  
-
-#SHOWING ERROR
+#ERROR HANDLING
 @app.errorhandler(404)
 def showMessage(error=None):
     message = {
@@ -182,15 +138,6 @@ def showMessage(error=None):
     respone = jsonify(message)
     respone.status_code = 404
     return respone
-
-#ERROR HANDLING
-@app.errorhandler(400)
-def handle_credentials():
-    message ={
-        "status": 400,
-        "message" :"Missing Username or password"
-    }
-    return jsonify(message)
 
 # RUN SERVER
 if __name__ == "__main__":
