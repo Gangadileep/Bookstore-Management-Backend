@@ -3,9 +3,10 @@ from flask import request
 from dbconnection import connect_and_commit
 from flask import jsonify
 from classes import Category
-
+from auth import check_for_token
 # CREATING CATEGORY DETAILS
 @app.route('/category', methods=['POST'])
+@check_for_token
 def addCategory(categoryid=None):
     try:
         json = request.json
@@ -26,6 +27,7 @@ def addCategory(categoryid=None):
 
 # DELETING THE CATEGORY DETAILS
 @app.route('/category/<categoryid>', methods=['DELETE'])
+@check_for_token
 def deleteCategory(categoryid):
     try:
         sqlQuery = "DELETE FROM category WHERE categoryid =%s"
@@ -39,7 +41,7 @@ def deleteCategory(categoryid):
         response = jsonify('Error Occured while deleting the category')
         response.status_code = 500
         return response
-        
+
 #ERROR HANDLING       
 @app.errorhandler(404)
 def showMessage(error=None):
