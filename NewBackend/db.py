@@ -29,7 +29,7 @@ CONSTRAINT category_pk PRIMARY KEY (categoryid)
 # TABLE FOR STORING DETAILS OF BOOKS
 mydb_Create_Table_Query = """CREATE TABLE book
 (bookname varchar(50) not null,
-isbn bigint(13) not null AUTO_INCREMENT PRIMARY KEY,
+isbn int(13) not null AUTO_INCREMENT PRIMARY KEY,
 author varchar(50) not null,
 category int(100) not null,
 price numeric(50) not null,
