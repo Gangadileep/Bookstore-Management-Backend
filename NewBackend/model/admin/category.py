@@ -4,6 +4,8 @@ from dbconnection import connect_and_commit
 from flask import jsonify
 from classes import Category
 from auth import check_for_token
+from log import logger
+
 # CREATING CATEGORY DETAILS
 @app.route('/category', methods=['POST'])
 @check_for_token
@@ -21,9 +23,9 @@ def addCategory(categoryid=None):
             return respone
         else:
             return showMessage()
-    except Exception as e:
-        print(e)
-        return 'Exception'
+    except KeyError as e:
+        logger.error(f"KeyError: {e}")
+        return jsonify({'error': 'A required key is missing from the request'})
 
 # DELETING THE CATEGORY DETAILS
 @app.route('/category/<categoryid>', methods=['DELETE'])
