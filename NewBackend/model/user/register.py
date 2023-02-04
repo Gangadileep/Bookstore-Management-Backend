@@ -1,13 +1,16 @@
 import pymysql
+import datetime
 import bcrypt
+import jwt
 from config import mydb
 from flask import jsonify
 from flask import  request
 from validate import validate_register_data
 from app import app
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from flask_cors import cross_origin
 from classes import Usertype, Register
+from log import logger
 
 #INSERTING USERTYPE DETAILS 
 @app.route('/addtype', methods=['POST'])
@@ -28,9 +31,12 @@ def addRole(id=None):
             return response
         else:
             return "something went wrong" 
-    except Exception as e:
-        print(e)
-        return 'Exception'
+    except pymysql.Error as e:
+        logger.error(f"pymysql.Error: {e}")
+        return jsonify({'error': 'Error occur in sql syntax'})
+    except KeyError as e:
+        logger.error(f"KeyError: {e}")
+        return jsonify({'error': 'A required key is missing from the request'})
 
 # REGISTER
 @app.route('/register', methods=['POST'])
@@ -66,7 +72,7 @@ def register(id=None):
             return respone
     else:
         return showMessage()
-
+        
 # LOGIN 
 @app.route('/login', methods=['POST'])
 def login():
@@ -83,10 +89,10 @@ def login():
                 row = cursor.fetchone() 
                 stored_hashed_password = row.get('password')
                 type = row.get('type')              
-                if verify_password(password, stored_hashed_password):
-                    access_token = create_access_token(identity=username) 
+                if verify_password(password, stored_hashed_password):  
+                    access_token = create_access_token(identity=username)                                      
                     conn.commit()
-                    return jsonify(message='Login Successful', access_token=access_token ,type=type),200
+                    return jsonify(message='Login Successful', access_token=access_token ,type=type)
                 else:
                     conn.commit()
                     return jsonify('Bad email or Password... Access Denied!'), 401
@@ -95,9 +101,12 @@ def login():
                 return jsonify('Bad email or Password... Access Denied!'), 401
         else:
             return showMessage()
-    except Exception as e:
-        print(e)
-        return 'Exception'
+    except pymysql.Error as e:
+        logger.error(f"pymysql.Error: {e}")
+        return jsonify({'error': 'Error occur in sql syntax'})
+    except KeyError as e:
+        logger.error(f"KeyError: {e}")
+        return jsonify({'error': 'A required key is missing from the request'})
 
 #HASHING PASSWORD
 def hash_password(password):
@@ -112,8 +121,8 @@ def verify_password( password,hashed_password):
     password = password.encode('utf-8')
     hashed_password = hashed_password.encode('utf-8')
     return bcrypt.checkpw(password, hashed_password)
-#ERROR HANDLING
 
+#ERROR HANDLING
 @app.errorhandler(404)
 def showMessage(error=None):
     message = {
@@ -123,3 +132,5 @@ def showMessage(error=None):
     respone = jsonify(message)
     respone.status_code = 404
     return respone
+
+
