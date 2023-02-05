@@ -127,7 +127,6 @@ def deleteBook(isbn):
         logger.error(f"KeyError: {e}")
         return jsonify({'error': 'A required key is missing from the request'})
 
-
 # SEARCHING FOR BOOKS
 @app.route('/book',methods=['GET'])
 @check_for_token
@@ -147,36 +146,6 @@ def searchBook(bookname):
         logger.error(f"pymysql.Error: {e}")
         return jsonify({'error': 'Error occur in sql syntax'})
 
-# UNIT TEST FOR ADD BOOK
-# def AddBook(isbn,bookname, author, categoryid, price,adminid):
-#     if not bookname or not author or not categoryid or not price:
-#         response = jsonify({'message': 'All fields are required'})
-#         response.status_code = 400
-#         return response
-#     conn = mydb.connect()
-#     cursor = conn.cursor(pymysql.cursors.DictCursor)  
-#     bookObj = Book(isbn,bookname, author, categoryid, price,adminid)
-#     if bookname and author and categoryid and price and adminid and request.method =='POST':
-#             print(bookObj.bookname)
-#             sqlQuery = "INSERT INTO book(bookname, author, category, price,adminid) VALUES(%s, %s, %s, %s,%s)"
-#             bindData = (bookObj.bookname, bookObj.author, bookObj.categoryid, bookObj.price,bookObj.adminid)
-#             try:
-#                 conn = mydb.connect()
-#                 cursor = conn.cursor(pymysql.cursors.DictCursor)  
-#                 print("GGGGG")
-#                 data =cursor.execute(sqlQuery, bindData)
-#                 print(data)
-#                 conn.commit()
-#                 print("fdgddddddddf")
-#             except pymysql.Error as e:
-#                 logger.error(f"pymysql.Error: {e}")
-#                 return jsonify({'error': 'Error occur in sql syntax'})
-           
-#             respone = jsonify('Book details added successfully!')
-#             respone.status_code = 200
-#             return respone
-#     else:
-#         return showMessage()
  
 @app.errorhandler(Exception)
 def handle_error(error):
